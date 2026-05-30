@@ -1,0 +1,345 @@
+<!-- Seoul itinerary planner. Single-file, mobile-first, editable, persistent. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF5EA; --ink:#221C16; --muted:#7A6F61; --line:#E7DBC7;
+    --persimmon:#E2552E; --teal:#16726B; --gold:#C2912F;
+    --yongsan:#C2683B; --ne:#3F6B4A; --river:#2E6E8E; --seongsu:#8A4F7D;
+    --jamsil:#C73B3B; --nw:#B07A1F; --card:#FFFDF8;
+    --shadow:0 1px 0 rgba(34,28,22,.04), 0 8px 24px -16px rgba(34,28,22,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 500px at 80% -10%, rgba(226,85,46,.07), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(22,114,107,.06), transparent 55%),
+      var(--paper);
+    color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+  .wrap{max-width:680px; margin:0 auto; padding:22px 16px 80px;}
+  header.top{position:relative; padding:8px 2px 18px; border-bottom:1px solid var(--line);}
+  .eyebrow{font-size:12px; letter-spacing:.28em; text-transform:uppercase; color:var(--persimmon); font-weight:700;}
+  h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,9vw,52px); line-height:.98; margin:6px 0 4px; letter-spacing:-.01em;}
+  h1 em{font-style:italic; color:var(--teal);}
+  .sub{color:var(--muted); font-size:15px; max-width:46ch;}
+  .bar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px;}
+  .btn{font-family:inherit; font-size:13px; font-weight:600; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; transition:.15s; display:inline-flex; gap:6px; align-items:center;}
+  .btn:hover{border-color:var(--ink); transform:translateY(-1px);}
+  .btn.ghost{background:transparent;}
+  .saved{font-size:12px; color:var(--muted); margin-left:auto;}
+  .saved b{color:var(--teal);}
+
+  details.sg{margin:18px 0 6px; border:1px dashed var(--line); border-radius:16px; background:rgba(255,253,248,.6); overflow:hidden;}
+  details.sg>summary{list-style:none; cursor:pointer; padding:14px 16px; font-weight:700; display:flex; align-items:center; gap:10px;}
+  details.sg>summary::-webkit-details-marker{display:none;}
+  .chev{margin-left:auto; transition:.2s; color:var(--muted);}
+  details[open] .chev{transform:rotate(180deg);}
+  .sgnote{padding:0 16px 6px; color:var(--muted); font-size:13px;}
+  .sgrid{padding:6px 12px 14px; display:grid; gap:8px;}
+  .sgcat{font-family:"Fraunces",serif; font-style:italic; font-size:15px; color:var(--teal); padding:10px 4px 2px;}
+  .scard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px;}
+  .scard .h{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;}
+  .scard .t{font-weight:600;}
+  .scard .n{color:var(--muted); font-size:13px; margin-top:2px;}
+  .adder{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .daypick{font-size:11px; font-weight:700; border:1px solid var(--line); background:var(--paper); border-radius:8px; padding:4px 8px; cursor:pointer;}
+  .daypick:hover{border-color:var(--persimmon); color:var(--persimmon);}
+
+  .tag{font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; white-space:nowrap;}
+  .cost{font-size:11px; font-weight:700; color:var(--muted); border:1px solid var(--line); padding:2px 7px; border-radius:999px;}
+
+  .day{margin-top:18px; background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); overflow:hidden;}
+  .dhead{display:flex; gap:14px; align-items:flex-start; padding:16px 16px 12px;}
+  .stamp{flex:0 0 auto; width:58px; text-align:center; border-right:1px solid var(--line); padding-right:12px;}
+  .stamp .d{font-family:"Fraunces",serif; font-size:30px; font-weight:600; line-height:1;}
+  .stamp .m{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);}
+  .stamp .w{font-size:12px; font-weight:700; color:var(--persimmon); margin-top:3px;}
+  .dtitle{flex:1; min-width:0;}
+  .dtitle .theme{font-family:"Fraunces",serif; font-size:20px; font-weight:600; line-height:1.1; outline:none; border-radius:6px;}
+  .dtitle .theme:focus{background:rgba(226,85,46,.08); box-shadow:0 0 0 2px rgba(226,85,46,.25);}
+  .dtitle .loc{color:var(--muted); font-size:13px; margin-top:2px;}
+
+  ul.items{list-style:none; margin:0; padding:4px 14px 6px;}
+  li.item{display:flex; gap:10px; align-items:flex-start; padding:10px 4px; border-top:1px solid var(--line);}
+  li.item:first-child{border-top:none;}
+  .check{flex:0 0 auto; width:20px; height:20px; margin-top:2px; border:1.5px solid var(--muted); border-radius:6px; cursor:pointer; background:transparent; display:grid; place-items:center; transition:.12s;}
+  .check.on{background:var(--teal); border-color:var(--teal);}
+  .check.on::after{content:"\2713"; color:#fff; font-size:12px; font-weight:800;}
+  .ibody{flex:1; min-width:0;}
+  .irow{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;}
+  .time{font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; color:var(--persimmon);}
+  .ititle{font-weight:600;}
+  .item.done .ititle{text-decoration:line-through; color:var(--muted);}
+  .inote{color:var(--muted); font-size:13px; margin-top:2px;}
+  .iacts{flex:0 0 auto; display:flex; gap:4px; opacity:.5;}
+  li.item:hover .iacts{opacity:1;}
+  .mini{border:none; background:transparent; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 5px; border-radius:6px;}
+  .mini:hover{background:var(--paper); color:var(--ink);}
+
+  .addrow{padding:6px 16px 16px;}
+  .addbtn{font-size:13px; font-weight:700; color:var(--teal); background:transparent; border:1px dashed var(--line); border-radius:10px; padding:9px 12px; width:100%; cursor:pointer; text-align:left;}
+  .addbtn:hover{border-color:var(--teal);}
+
+  .form{padding:10px 16px 16px; display:grid; gap:8px;}
+  .form input, .form textarea, .form select{font-family:inherit; font-size:14px; border:1px solid var(--line); border-radius:10px; padding:9px 10px; background:var(--paper); color:var(--ink); width:100%;}
+  .form .two{display:flex; gap:8px;}
+  .form .two input{flex:1;}
+  .form textarea{resize:vertical; min-height:38px;}
+  .form .acts{display:flex; gap:8px; justify-content:flex-end;}
+  .legend{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; font-size:11px; color:var(--muted);}
+  .legend .li{display:flex; gap:5px; align-items:center;}
+  .dot{width:10px; height:10px; border-radius:3px;}
+  footer{margin-top:26px; text-align:center; color:var(--muted); font-size:12px;}
+  @media(max-width:430px){ .stamp{width:50px; padding-right:10px;} h1{font-size:38px;} }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">22 to 28 June 2026 · Seoul · base in Dongdaemun</div>
+    <h1>Her birthday, <em>like locals</em></h1>
+    <div class="sub">Tap a circle to tick something off. Tap any title to rename it. Add your own, or pull from the ideas drawer. Everything you change is saved.</div>
+    <div class="bar">
+      <button class="btn ghost" id="expandAll">Open ideas</button>
+      <button class="btn ghost" id="reset">Reset plan</button>
+      <span class="saved" id="saved"></span>
+    </div>
+    <div class="legend" id="legend"></div>
+  </header>
+
+  <details class="sg" id="suggestBox">
+    <summary>💡 Ideas drawer <span style="color:var(--muted);font-weight:500">(tap a day chip to drop one in)</span><span class="chev">▾</span></summary>
+    <div class="sgnote">Researched picks plus your own list. Add anything to any day, then reorder by editing.</div>
+    <div class="sgrid" id="sgrid"></div>
+  </details>
+
+  <div id="days"></div>
+
+  <footer>Built for the trip · weather, pop-up dates and the baseball fixture can change, so confirm the time-sensitive ones close to the day.</footer>
+</div>
+
+<script>
+const AREAS = {
+  dongdaemun:{label:"Dongdaemun", c:"var(--gold)"},
+  ne:{label:"NE / old Seoul", c:"var(--ne)"},
+  river:{label:"Hangang", c:"var(--river)"},
+  seongsu:{label:"Seongsu", c:"var(--seongsu)"},
+  jamsil:{label:"Jamsil", c:"var(--jamsil)"},
+  nw:{label:"NW / Mapo", c:"var(--nw)"},
+  yongsan:{label:"Yongsan", c:"var(--yongsan)"},
+};
+const COST = {0:"free", 1:"₩", 2:"₩₩", 3:"₩₩₩"};
+let uid = ()=> Math.random().toString(36).slice(2,9);
+
+function defaults(){return {days:[
+ {id:uid(), d:"22", m:"Jun", w:"Mon", theme:"Land, then eat your way home", area:"dongdaemun", items:[
+   {id:uid(), time:"", title:"Meet at the airport, ride to Dongdaemun", area:"dongdaemun", note:"You land midday, her flight is 5pm. AREX into the city, drop bags. Realistically settled by ~7pm.", cost:1, done:false},
+   {id:uid(), time:"dinner", title:"Gwangjang Market dinner", area:"dongdaemun", note:"Walkable from the hotel. Bindaetteok, mayak gimbap, yukhoe. Loud, cheap, the opposite of touristy.", cost:1, done:false},
+   {id:uid(), time:"opt", title:"Cheonggyecheon Stream night walk", area:"dongdaemun", note:"The stream starts right by Dongdaemun. Free, calm, a nice first-night wander.", cost:0, done:false},
+   {id:uid(), time:"opt", title:"Espresso martini at Dowon 22 (Euljiro)", area:"ne", note:"Classy jazz cocktail bar, reviewers rave about the espresso martini. Alternatives: Fabrik (coffee-roastery cocktail bar), Minum, Geurigo Bar, or Unordinary for wine. A few stops from the hotel, keep it short.", cost:2, done:false},
+ ]},
+ {id:uid(), d:"23", m:"Jun", w:"Tue", theme:"Lotte World, then floodlights", area:"jamsil", items:[
+   {id:uid(), time:"late AM", title:"Lotte World (quiet weekday)", area:"jamsil", note:"Tuesday is far calmer than the weekend. Indoor + outdoor Magic Island. The 'After-4' pass is cheaper if you'd rather a shorter afternoon.", cost:3, done:false},
+   {id:uid(), time:"18:30", title:"KBO baseball at Jamsil Stadium", area:"jamsil", note:"5-minute walk from Lotte World. CHECK THE FIXTURE: 23-25 Jun is one home stand, so verify a Jamsil team is home on mykbostats.com or Naver Sports, then grab tickets (~8-20k won). If they are away, the dome (Kiwoom, Gocheok) is plan B.", cost:1, done:false},
+   {id:uid(), time:"after", title:"Songpa Chimaek Street", area:"jamsil", note:"10-min walk from the stadium, chicken + beer with the crowd.", cost:1, done:false},
+ ]},
+ {id:uid(), d:"24", m:"Jun", w:"Wed", theme:"Birthday · just the two of you", area:"river", items:[
+   {id:uid(), time:"AM", title:"Skincare for both (English-speaking clinic)", area:"dongdaemun", note:"Aqua peel each, gentle and no downtime. Myeongdong clinics (Kleam / PPEUM style) have English staff and are one cluster from the hotel. Book ahead, ask the first-visit price. You're treating her.", cost:2, done:false},
+   {id:uid(), time:"lunch", title:"Slow birthday lunch", area:"dongdaemun", note:"Somewhere she loves, not rushed. NOTE: she is allergic to mango, watch desserts and drinks.", cost:2, done:false},
+   {id:uid(), time:"PM", title:"Bike + picnic at Banpo Hangang Park", area:"river", note:"Ttareungi public bikes. Grab picnic + chimaek from a CU on the way.", cost:1, done:false},
+   {id:uid(), time:"20:00", title:"Moonlight Rainbow Fountain", area:"river", note:"Free shows at 19:30 / 20:00 / 20:30 / 21:00. South bank = best view. The birthday capstone.", cost:0, done:false},
+   {id:uid(), time:"night", title:"Birthday dinner & drinks", area:"river", note:"Intimate. The big party is the 26th. No mango on the dessert menu.", cost:3, done:false},
+ ]},
+ {id:uid(), d:"25", m:"Jun", w:"Thu", theme:"Fashion crawl", area:"seongsu", items:[
+   {id:uid(), time:"AM", title:"OSOI archive sale + Marge Sherwood", area:"seongsu", note:"Both in Seongsu. Bag-brand archive sales = her thing.", cost:2, done:false},
+   {id:uid(), time:"", title:"Yeonmujang-gil pop-up crawl", area:"seongsu", note:"Pop-up ground zero, 200+ rotating. Watch for the cheap 10,000-won 'scoop' events. No Korean ID for booking? Show up an hour early and ask for the foreigner standby list.", cost:1, done:false},
+   {id:uid(), time:"", title:"Concept stores: LCDC, Daelim Changgo", area:"seongsu", note:"Converted-warehouse shops + cafes. Tteokbokki / street food for fuel.", cost:1, done:false},
+   {id:uid(), time:"eve", title:"Dinner in Euljiro on the way home", area:"ne", note:"Sits neatly between Seongsu and Dongdaemun. Hip alley spots, very local.", cost:2, done:false},
+ ]},
+ {id:uid(), d:"26", m:"Jun", w:"Fri", theme:"Northwest by day, party by night", area:"nw", items:[
+   {id:uid(), time:"AM", title:"Eunpyeong Hanok Village (optional)", area:"nw", note:"Far north, beautiful hanok rooftops with mountain backdrop. Skip for a slower start if you'd rather.", cost:0, done:false},
+   {id:uid(), time:"PM", title:"Mangwon Market + Yeonnam-dong", area:"nw", note:"Local market street food, then Yeonnam cafes and indie shops. All in Mapo, right by the party.", cost:1, done:false},
+   {id:uid(), time:"", title:"Walk along the Hangang", area:"river", note:"Mangwon Hangang Park is right there. Wind down before the night kicks off.", cost:0, done:false},
+   {id:uid(), time:"21:00", title:"Birthday Party 🎉", area:"nw", note:"Venue: Daejung-ro 80-15, 2F, Mapo-gu. The main event. Confirm headcount and a backup plan if it rains.", cost:3, done:false},
+ ]},
+ {id:uid(), d:"27", m:"Jun", w:"Sat", theme:"Recover slow in old Seoul", area:"ne", items:[
+   {id:uid(), time:"late AM", title:"Hangover meal at grandma's, Noksapyeong", area:"yongsan", note:"Best cure going. No rush after the party.", cost:0, done:false},
+   {id:uid(), time:"PM", title:"Seongbuk-dong: temple, tea, galleries", area:"ne", note:"Gilsangsa temple is calm and free. Suyeon Sanbang for tea in a hanok garden. Gentle, perfect last full day.", cost:1, done:false},
+   {id:uid(), time:"sunset", title:"Naksan Park wall + photo booth", area:"ne", note:"Romantic fortress-wall walk at golden hour, then 인생네컷 photo booth nearby. Ihwa Mural Village sits right below if you want more.", cost:1, done:false},
+ ]},
+ {id:uid(), d:"28", m:"Jun", w:"Sun", theme:"You fly out", area:"dongdaemun", items:[
+   {id:uid(), time:"", title:"Last breakfast + pack", area:"dongdaemun", note:"Leave buffer for AREX / airport transfer.", cost:1, done:false},
+ ]},
+]};}
+
+const SUGGESTIONS = [
+ ["Near the hotel (Dongdaemun)", [
+   ["Gwangjang Market food hall","dongdaemun","Walking distance. The vintage clothing row upstairs is great too.",1],
+   ["DDP at night","dongdaemun","Zaha Hadid's silver spaceship lit up. Architecture walk, no ticket needed.",0],
+   ["Euljiro 'Hipjiro' bars","ne","Printing-district alleys turned hidden bars. Very local after dark.",2],
+   ["Sindang-dong tteokbokki town","dongdaemun","Old-school spicy rice cake alley, a short ride away.",1],
+ ]],
+ ["Local gems", [
+   ["Mullae-dong ironworks + art","seongsu","Welding shops next to galleries and cafes. Gritty and real.",1],
+   ["Ikseon-dong hanok alleys","ne","Tight lanes of cafes and tiny shops near Jongno.",1],
+   ["Seochon (West Village)","ne","Quiet old-Seoul streets, indie cafes, beside Gyeongbokgung.",1],
+ ]],
+ ["Fashion & shopping", [
+   ["The Hyundai Seoul","river","Korea's flashiest mall, Yeouido. Pairs with a Hangang afternoon.",2],
+   ["Dongdaemun late-night shopping","dongdaemun","Wholesale fashion at the hotel's doorstep, runs past midnight. Touristy but convenient.",2],
+   ["Common Ground container mall","ne","Stacked blue containers near Konkuk Univ, indie fashion.",2],
+ ]],
+ ["Self-care", [
+   ["Aqua peel facial (English-speaking)","dongdaemun","Myeongdong clinics with English staff and transparent pricing. Ask about first-visit deals.",2],
+   ["Dragon Hill Spa (jjimjilbang)","yongsan","Big spa, ~15k won entry, hours of soaking. Budget self-care for two.",1],
+   ["Sparex jjimjilbang","jamsil","Your pick. Cheap local sauna day.",1],
+ ]],
+ ["Food & market", [
+   ["Gyeongdong Market","ne","Old herbal-medicine market with a cult Starbucks in a former theatre.",1],
+   ["Changsin-dong stationery & toy market","ne","Wholesale alleys of stationery and toys, just east of Dongdaemun. Niche and fun.",1],
+   ["Hangang ferry / night cruise","river","Sunset on the river from Yeouido or Jamsil.",2],
+ ]],
+ ["Fun & animals", [
+   ["Meerkat / animal cafe, Hongdae","nw","Your 'Meerkat Friends' idea. It's in Hongdae (Seoul), not Haeundae (that's Busan).",2],
+ ]],
+];
+
+const $ = s=>document.querySelector(s);
+let state = defaults();
+let savedTimer;
+
+function markSaved(tag){
+  const el=$("#saved");
+  el.innerHTML = tag ? `Saved <b>(${tag})</b>` : `Saved <b>\u2713</b>`;
+  clearTimeout(savedTimer);
+  savedTimer=setTimeout(()=>{el.textContent="";},1600);
+}
+async function save(){
+  try{ if(window.storage){ await window.storage.set("seoul_itinerary_v2", JSON.stringify(state)); markSaved(); return; } }catch(e){}
+  markSaved("this session");
+}
+async function load(){
+  try{ if(window.storage){ const r=await window.storage.get("seoul_itinerary_v2"); if(r&&r.value){ state=JSON.parse(r.value); } } }catch(e){}
+  render();
+}
+
+function tag(area){ if(!area||!AREAS[area]) return ""; const a=AREAS[area];
+  return `<span class="tag" style="background:${a.c}">${a.label}</span>`; }
+function costPill(c){ return (c===undefined||c===null) ? "" : `<span class="cost">${COST[c]}</span>`; }
+function esc(s){ return (s||"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+function render(){
+  $("#legend").innerHTML = Object.values(AREAS).map(a=>`<span class="li"><span class="dot" style="background:${a.c}"></span>${a.label}</span>`).join("")
+    + `<span class="li"><span class="dot" style="background:var(--muted)"></span>cost: free · ₩ · ₩₩ · ₩₩₩</span>`;
+
+  $("#sgrid").innerHTML = SUGGESTIONS.map(([cat,items])=>{
+    return `<div class="sgcat">${cat}</div>` + items.map(([t,area,note,cost],i)=>{
+      const sid = cat.replace(/\W/g,"")+i;
+      const dayChips = state.days.map((d,di)=>`<button class="daypick" data-add="${sid}" data-di="${di}">+ ${d.d}/6</button>`).join("");
+      return `<div class="scard" data-sid="${sid}" data-t="${esc(t)}" data-area="${area}" data-note="${esc(note)}" data-cost="${cost}">
+        <div class="h"><span class="t">${esc(t)}</span>${tag(area)}${costPill(cost)}</div>
+        <div class="n">${esc(note)}</div>
+        <div class="adder">${dayChips}</div>
+      </div>`;
+    }).join("");
+  }).join("");
+
+  $("#days").innerHTML = state.days.map((day,di)=>{
+    const items = day.items.map((it,ii)=>`
+      <li class="item ${it.done?'done':''}" data-di="${di}" data-ii="${ii}">
+        <div class="check ${it.done?'on':''}" data-act="toggle"></div>
+        <div class="ibody">
+          <div class="irow">
+            ${it.time?`<span class="time">${esc(it.time)}</span>`:""}
+            <span class="ititle">${esc(it.title)}</span>
+            ${tag(it.area)}${costPill(it.cost)}
+          </div>
+          ${it.note?`<div class="inote">${esc(it.note)}</div>`:""}
+        </div>
+        <div class="iacts">
+          <button class="mini" data-act="up" title="Move up">↑</button>
+          <button class="mini" data-act="edit" title="Edit">✎</button>
+          <button class="mini" data-act="del" title="Remove">✕</button>
+        </div>
+      </li>`).join("");
+    return `<section class="day" data-di="${di}">
+      <div class="dhead">
+        <div class="stamp"><div class="d">${esc(day.d)}</div><div class="m">${esc(day.m)}</div><div class="w">${esc(day.w)}</div></div>
+        <div class="dtitle">
+          <div class="theme" contenteditable="true" data-act="theme" spellcheck="false">${esc(day.theme)}</div>
+          <div class="loc">${day.items.length} thing${day.items.length===1?'':'s'} planned</div>
+        </div>
+      </div>
+      <ul class="items">${items||'<li class="item" style="color:var(--muted)">Nothing here yet.</li>'}</ul>
+      <div class="addrow"><button class="addbtn" data-act="addopen" data-di="${di}">+ Add an activity</button></div>
+    </section>`;
+  }).join("");
+}
+
+document.addEventListener("click",e=>{
+  const addChip=e.target.closest("[data-add]");
+  if(addChip){
+    const card=e.target.closest(".scard"); const di=+addChip.dataset.di;
+    state.days[di].items.push({id:uid(), time:"", title:card.dataset.t, area:card.dataset.area, note:card.dataset.note, cost:+card.dataset.cost, done:false});
+    save(); render();
+    const target=document.querySelector(`.day[data-di="${di}"]`); if(target) target.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  const item=e.target.closest("li.item[data-ii]");
+  if(item){
+    const di=+item.dataset.di, ii=+item.dataset.ii, act=(e.target.dataset.act)||"";
+    if(act==="toggle"){ state.days[di].items[ii].done=!state.days[di].items[ii].done; save(); render(); return; }
+    if(act==="del"){ state.days[di].items.splice(ii,1); save(); render(); return; }
+    if(act==="up"){ if(ii>0){ const a=state.days[di].items; [a[ii-1],a[ii]]=[a[ii],a[ii-1]]; save(); render(); } return; }
+    if(act==="edit"){ openEdit(di,ii,item); return; }
+  }
+  const addBtn=e.target.closest('[data-act="addopen"]');
+  if(addBtn){ openAdd(+addBtn.dataset.di, addBtn); return; }
+});
+
+document.addEventListener("blur",e=>{
+  const th=e.target.closest('[data-act="theme"]');
+  if(th){ const di=+th.closest(".day").dataset.di; state.days[di].theme=th.textContent.trim()||"Untitled"; save(); }
+},true);
+
+function formHTML(v={}){
+  const opts=Object.entries(AREAS).map(([k,a])=>`<option value="${k}" ${v.area===k?'selected':''}>${a.label}</option>`).join("");
+  const costs=Object.entries(COST).map(([k,l])=>`<option value="${k}" ${(''+v.cost)===k?'selected':''}>${l}</option>`).join("");
+  return `<div class="form">
+    <input data-f="title" placeholder="What is it?" value="${esc(v.title||'')}">
+    <div class="two">
+      <input data-f="time" placeholder="time (opt)" value="${esc(v.time||'')}" style="max-width:130px">
+      <select data-f="area">${opts}</select>
+      <select data-f="cost" style="max-width:90px"><option value="">cost</option>${costs}</select>
+    </div>
+    <textarea data-f="note" placeholder="note (optional)">${esc(v.note||'')}</textarea>
+    <div class="acts"><button class="btn ghost" data-f="cancel">Cancel</button><button class="btn" data-f="save">Save</button></div>
+  </div>`;
+}
+function readForm(box){
+  const g=f=>box.querySelector(`[data-f="${f}"]`).value.trim();
+  const cv=box.querySelector('[data-f="cost"]').value;
+  return {title:g("title"), time:g("time"), area:box.querySelector('[data-f="area"]').value, note:g("note"), cost:cv===""?null:+cv};
+}
+function openAdd(di, btn){
+  const box=document.createElement("div"); box.innerHTML=formHTML({area:state.days[di].area}); const f=box.firstElementChild;
+  btn.replaceWith(f); f.querySelector('[data-f="title"]').focus();
+  f.querySelector('[data-f="save"]').onclick=()=>{ const v=readForm(f); if(!v.title) return; v.id=uid(); v.done=false; state.days[di].items.push(v); save(); render(); };
+  f.querySelector('[data-f="cancel"]').onclick=()=>render();
+}
+function openEdit(di,ii,li){
+  const it=state.days[di].items[ii]; const box=document.createElement("div"); box.innerHTML=formHTML(it); const f=box.firstElementChild;
+  li.replaceWith(f); f.querySelector('[data-f="title"]').focus();
+  f.querySelector('[data-f="save"]').onclick=()=>{ const v=readForm(f); if(!v.title) return; Object.assign(it,v); save(); render(); };
+  f.querySelector('[data-f="cancel"]').onclick=()=>render();
+}
+
+$("#reset").onclick=()=>{ if(confirm("Reset to the suggested plan? Your edits will be lost.")){ state=defaults(); save(); render(); } };
+let allOpen=false;
+$("#expandAll").onclick=()=>{ allOpen=!allOpen; $("#suggestBox").open=allOpen; $("#expandAll").textContent=allOpen?"Close ideas":"Open ideas"; };
+
+load();
+</script>
