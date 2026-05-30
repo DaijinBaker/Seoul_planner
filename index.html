@@ -101,9 +101,12 @@
   <header class="top">
     <div class="eyebrow">22 to 28 June 2026 · Seoul · base in Dongdaemun</div>
     <h1>Her birthday, <em>like locals</em></h1>
-    <div class="sub">Tap a circle to tick something off. Tap any title to rename it. Add your own, or pull from the ideas drawer. Everything you change is saved.</div>
+    <div class="sub">Tap a circle to tick something off. Tap any title to rename it. Add your own, or pull from the ideas drawer. Changes save in this browser automatically, use Export to back them up or move them to another device.</div>
     <div class="bar">
       <button class="btn ghost" id="expandAll">Open ideas</button>
+      <button class="btn ghost" id="export">Export</button>
+      <label class="btn ghost" for="importFile">Import</label>
+      <input id="importFile" type="file" accept="application/json,.json" style="display:none">
       <button class="btn ghost" id="reset">Reset plan</button>
       <span class="saved" id="saved"></span>
     </div>
@@ -217,12 +220,20 @@ function markSaved(tag){
   clearTimeout(savedTimer);
   savedTimer=setTimeout(()=>{el.textContent="";},1600);
 }
-async function save(){
-  try{ if(window.storage){ await window.storage.set("seoul_itinerary_v2", JSON.stringify(state)); markSaved(); return; } }catch(e){}
-  markSaved("this session");
+const STORE_KEY = "seoul_itinerary_v2";
+function save(){
+  // Primary: the browser's own localStorage (works on GitHub Pages / any static host)
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); markSaved(); return; }catch(e){ console.warn("localStorage save failed:", e); }
+  // Fallback: Claude artifact runtime, if this happens to run inside one
+  try{ if(window.storage){ window.storage.set(STORE_KEY, JSON.stringify(state)); markSaved(); return; } }catch(e){}
+  // Last resort: kept in memory only, lost on refresh
+  markSaved("this session only");
 }
-async function load(){
-  try{ if(window.storage){ const r=await window.storage.get("seoul_itinerary_v2"); if(r&&r.value){ state=JSON.parse(r.value); } } }catch(e){}
+function load(){
+  try{
+    const v = localStorage.getItem(STORE_KEY);
+    if(v){ const parsed = JSON.parse(v); if(parsed && Array.isArray(parsed.days)) state = parsed; }
+  }catch(e){ console.warn("Could not load saved plan:", e); }
   render();
 }
 
@@ -340,6 +351,30 @@ function openEdit(di,ii,li){
 $("#reset").onclick=()=>{ if(confirm("Reset to the suggested plan? Your edits will be lost.")){ state=defaults(); save(); render(); } };
 let allOpen=false;
 $("#expandAll").onclick=()=>{ allOpen=!allOpen; $("#suggestBox").open=allOpen; $("#expandAll").textContent=allOpen?"Close ideas":"Open ideas"; };
+
+// Export the current plan to a JSON file (backup / move between devices)
+$("#export").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="seoul-plan.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+};
+// Import a previously exported plan
+$("#importFile").onchange=(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const parsed=JSON.parse(r.result);
+      if(parsed && Array.isArray(parsed.days)){ state=parsed; save(); render(); }
+      else { alert("That file doesn't look like a Seoul plan export."); }
+    }catch(err){ alert("Could not read that file: " + err.message); }
+  };
+  r.readAsText(file);
+  e.target.value=""; // allow re-importing the same file later
+};
 
 load();
 </script>
