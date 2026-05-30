@@ -243,7 +243,8 @@ function markSaved(tag){
   el.innerHTML = tag ? `<b>${tag}</b>` : `Saved <b>\u2713</b>`;
 }
 function cacheLocal(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
-function readCache(){ try{ const v=localStorage.getItem(STORE_KEY); if(v){ const p=JSON.parse(v); if(p&&Array.isArray(p.days)) return p; } }catch(e){} return null; }
+function readCache(){ try{ const v=localStorage.getItem(STORE_KEY); if(v){ const p=JSON.parse(v); if(p&&Array.isArray(p.days)&&p.days.length) return p; } }catch(e){} return null; }
+function hasPlan(o){ return o && Array.isArray(o.days) && o.days.length>0; }
 function isEditing(){ return !!document.querySelector(".form"); }
 
 function save(){
@@ -274,8 +275,12 @@ async function load(){
   if(CLOUD){
     try{
       const cloud=await fetchCloud();
-      if(cloud){ state=cloud; cacheLocal(); markSaved("Synced \u2713"); }
-      else { await fetch(API,{ method:"PUT", headers:{ "Content-Type":"application/json", "X-Access-Key":ACCESS_KEY }, body:JSON.stringify(state) }); markSaved("Synced \u2713"); }
+      if(hasPlan(cloud)){ state=cloud; cacheLocal(); markSaved("Synced \u2713"); }   // real shared plan exists
+      else {                                                                          // new / empty bin: seed it
+        if(!hasPlan(state)) state=defaults();
+        await fetch(API,{ method:"PUT", headers:{ "Content-Type":"application/json", "X-Access-Key":ACCESS_KEY }, body:JSON.stringify(state) });
+        cacheLocal(); markSaved("Synced \u2713");
+      }
     }catch(e){ markSaved("Offline \u00b7 using local copy"); }
   } else if(cached){ markSaved("Saved on this device"); }
   render();
@@ -285,7 +290,7 @@ async function pull(){                                         // pick up your p
   if(!CLOUD || isEditing()) return;
   try{
     const cloud=await fetchCloud();
-    if(cloud && JSON.stringify(cloud)!==JSON.stringify(state)){ state=cloud; cacheLocal(); render(); markSaved("Synced \u2713"); }
+    if(hasPlan(cloud) && JSON.stringify(cloud)!==JSON.stringify(state)){ state=cloud; cacheLocal(); render(); markSaved("Synced \u2713"); }
   }catch(e){}
 }
 window.addEventListener("focus", pull);
