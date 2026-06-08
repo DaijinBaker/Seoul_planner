@@ -1,0 +1,389 @@
+<!-- Seoul itinerary planner. Single-file, mobile-first, editable, cloud-synced. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF5EA; --ink:#221C16; --muted:#7A6F61; --line:#E7DBC7;
+    --persimmon:#E2552E; --teal:#16726B; --gold:#C2912F; --card:#FFFDF8;
+    --shadow:0 1px 0 rgba(34,28,22,.04), 0 8px 24px -16px rgba(34,28,22,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 500px at 80% -10%, rgba(226,85,46,.07), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(22,114,107,.06), transparent 55%),
+      var(--paper);
+    color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif; -webkit-font-smoothing:antialiased; line-height:1.45;
+  }
+  .wrap{max-width:680px; margin:0 auto; padding:22px 16px 80px;}
+  header.top{position:relative; padding:8px 2px 18px; border-bottom:1px solid var(--line);}
+  .eyebrow{font-size:12px; letter-spacing:.28em; text-transform:uppercase; color:var(--persimmon); font-weight:700;}
+  h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,9vw,52px); line-height:.98; margin:6px 0 4px; letter-spacing:-.01em;}
+  h1 em{font-style:italic; color:var(--teal);}
+  .sub{color:var(--muted); font-size:15px; max-width:46ch;}
+  .bar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px;}
+  .btn{font-family:inherit; font-size:13px; font-weight:600; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; transition:.15s; display:inline-flex; gap:6px; align-items:center;}
+  .btn:hover{border-color:var(--ink); transform:translateY(-1px);}
+  .btn.ghost{background:transparent;}
+  .saved{font-size:12px; color:var(--muted); margin-left:auto;}
+  .saved b{color:var(--teal);}
+
+  details.sg{margin:18px 0 6px; border:1px dashed var(--line); border-radius:16px; background:rgba(255,253,248,.6); overflow:hidden;}
+  details.sg>summary{list-style:none; cursor:pointer; padding:14px 16px; font-weight:700; display:flex; align-items:center; gap:10px;}
+  details.sg>summary::-webkit-details-marker{display:none;}
+  .chev{margin-left:auto; transition:.2s; color:var(--muted);}
+  details[open] .chev{transform:rotate(180deg);}
+  .sgnote{padding:0 16px 6px; color:var(--muted); font-size:13px;}
+  .sgrid{padding:6px 12px 14px; display:grid; gap:8px;}
+  .scard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px;}
+  .scard .h{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;}
+  .scard .t{font-weight:600;}
+  .scard .n{color:var(--muted); font-size:13px; margin-top:2px;}
+  .adder{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .daypick{font-size:11px; font-weight:700; border:1px solid var(--line); background:var(--paper); border-radius:8px; padding:4px 8px; cursor:pointer;}
+  .daypick:hover{border-color:var(--persimmon); color:var(--persimmon);}
+
+  .tag{font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; white-space:nowrap;}
+  .cost{font-size:11px; font-weight:700; color:var(--muted); border:1px solid var(--line); padding:2px 7px; border-radius:999px;}
+
+  .day{margin-top:18px; background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); overflow:hidden;}
+  .dhead{display:flex; gap:14px; align-items:flex-start; padding:16px 16px 12px;}
+  .stamp{flex:0 0 auto; width:58px; text-align:center; border-right:1px solid var(--line); padding-right:12px;}
+  .stamp .d{font-family:"Fraunces",serif; font-size:30px; font-weight:600; line-height:1;}
+  .stamp .m{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);}
+  .stamp .w{font-size:12px; font-weight:700; color:var(--persimmon); margin-top:3px;}
+  .dtitle{flex:1; min-width:0;}
+  .dtitle .theme{font-family:"Fraunces",serif; font-size:20px; font-weight:600; line-height:1.1; outline:none; border-radius:6px;}
+  .dtitle .theme:focus{background:rgba(226,85,46,.08); box-shadow:0 0 0 2px rgba(226,85,46,.25);}
+  .dtitle .loc{color:var(--muted); font-size:13px; margin-top:2px;}
+
+  ul.items{list-style:none; margin:0; padding:4px 14px 6px;}
+  li.item{display:flex; gap:10px; align-items:flex-start; padding:10px 4px; border-top:1px solid var(--line);}
+  li.item:first-child{border-top:none;}
+  .check{flex:0 0 auto; width:20px; height:20px; margin-top:2px; border:1.5px solid var(--muted); border-radius:6px; cursor:pointer; background:transparent; display:grid; place-items:center; transition:.12s;}
+  .check.on{background:var(--teal); border-color:var(--teal);}
+  .check.on::after{content:"\2713"; color:#fff; font-size:12px; font-weight:800;}
+  .ibody{flex:1; min-width:0;}
+  .irow{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;}
+  .time{font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; color:var(--persimmon);}
+  .ititle{font-weight:600;}
+  .item.done .ititle{text-decoration:line-through; color:var(--muted);}
+  .inote{color:var(--muted); font-size:13px; margin-top:2px;}
+  .iacts{flex:0 0 auto; display:flex; gap:4px; opacity:.55;}
+  li.item:hover .iacts{opacity:1;}
+  .mini{border:none; background:transparent; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 5px; border-radius:6px;}
+  .mini:hover{background:var(--paper); color:var(--ink);}
+
+  .addrow{padding:6px 16px 16px;}
+  .addbtn{font-size:13px; font-weight:700; color:var(--teal); background:transparent; border:1px dashed var(--line); border-radius:10px; padding:9px 12px; width:100%; cursor:pointer; text-align:left;}
+  .addbtn:hover{border-color:var(--teal);}
+
+  .form{padding:10px 0 4px; display:grid; gap:8px;}
+  .form input, .form textarea, .form select{font-family:inherit; font-size:14px; border:1px solid var(--line); border-radius:10px; padding:10px 11px; background:var(--paper); color:var(--ink); width:100%;}
+  .form .two{display:flex; gap:8px; flex-wrap:wrap;}
+  .form .two .f-time{flex:1 1 160px; min-width:150px;}
+  .form .two .f-area{flex:1 1 160px; min-width:150px;}
+  .form .two .f-cost{flex:0 0 96px;}
+  .form textarea{resize:vertical; min-height:42px;}
+  .form .acts{display:flex; gap:8px; justify-content:flex-end;}
+  .form .lbl{font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin:2px 0 -4px;}
+  .legend{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; font-size:11px; color:var(--muted);}
+  footer{margin-top:26px; text-align:center; color:var(--muted); font-size:12px;}
+  @media(max-width:430px){ .stamp{width:50px; padding-right:10px;} h1{font-size:38px;} }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">22 to 28 June 2026 · Seoul · base in Dongdaemun</div>
+    <h1>Her birthday, <em>like locals</em></h1>
+    <div class="sub">Tap a circle to tick something off. Tap any title to rename it. Add your own anywhere, or build up the ideas drawer. Everything saves and syncs for both of you automatically.</div>
+    <div class="bar">
+      <button class="btn ghost" id="expandAll">Open ideas</button>
+      <button class="btn ghost" id="reset">Reset plan</button>
+      <span class="saved" id="saved"></span>
+    </div>
+    <div class="legend" id="legend"></div>
+  </header>
+
+  <details class="sg" id="suggestBox">
+    <summary>💡 Ideas drawer <span style="color:var(--muted);font-weight:500">(your shortlist, tap a day chip to drop one in)</span><span class="chev">▾</span></summary>
+    <div class="sgnote">Add, edit or remove your own ideas here. Tap a date chip on any idea to copy it into that day.</div>
+    <div class="sgrid" id="sgrid"></div>
+  </details>
+
+  <div id="days"></div>
+
+  <footer>Built for the trip · weather, pop-up dates and the baseball fixture can change, so confirm the time-sensitive ones close to the day.</footer>
+</div>
+
+<script>
+const COST = {0:"free", 1:"₩", 2:"₩₩", 3:"₩₩₩"};
+const uid = ()=> Math.random().toString(36).slice(2,9);
+
+// Curated colours for the regulars; anything you type gets a stable auto-colour.
+const LOC_COLORS = {
+  "dongdaemun":"#B07A1F","euljiro":"#3F6B4A","old seoul":"#3F6B4A","seongbuk":"#2E7D5B","naksan":"#2E7D5B",
+  "hangang":"#2E6E8E","banpo":"#2E6E8E","seongsu":"#8A4F7D","jamsil":"#C73B3B","mapo":"#B6862C",
+  "yeonnam":"#B6862C","hongdae":"#B6862C","eunpyeong":"#9C7A1E","yongsan":"#C2683B","noksapyeong":"#C2683B",
+  "itaewon":"#C2683B","haebangcheon":"#C2683B","myeongdong":"#9A6650","yeouido":"#2E6E8E"
+};
+function colorFor(loc){
+  if(!loc) return "var(--muted)";
+  const k=loc.trim().toLowerCase();
+  if(LOC_COLORS[k]) return LOC_COLORS[k];
+  let h=0; for(let i=0;i<k.length;i++){ h=(h*31+k.charCodeAt(i))>>>0; }
+  return "hsl("+(h%360)+" 42% 42%)";
+}
+
+function defaults(){return {
+ days:[
+ {id:uid(), d:"22", m:"Jun", w:"Mon", theme:"Land, then eat your way home", items:[
+   {id:uid(), time:"", title:"Meet at the airport, ride to Dongdaemun", area:"Dongdaemun", note:"You land midday, her flight is 5pm. AREX into the city, drop bags. Realistically settled by ~7pm.", cost:1, done:false},
+   {id:uid(), time:"dinner", title:"Gwangjang Market dinner", area:"Dongdaemun", note:"Walkable from the hotel. Bindaetteok, mayak gimbap, yukhoe. Loud, cheap, the opposite of touristy.", cost:1, done:false},
+   {id:uid(), time:"opt", title:"Cheonggyecheon Stream night walk", area:"Dongdaemun", note:"The stream starts right by Dongdaemun. Free, calm, a nice first-night wander.", cost:0, done:false},
+   {id:uid(), time:"opt", title:"Espresso martini at Dowon 22", area:"Euljiro", note:"Classy jazz cocktail bar, reviewers rave about the espresso martini. Alternatives: Fabrik, Minum, Geurigo Bar, or Unordinary for wine.", cost:2, done:false}
+ ]},
+ {id:uid(), d:"23", m:"Jun", w:"Tue", theme:"Lotte World, then floodlights", items:[
+   {id:uid(), time:"late AM", title:"Lotte World (quiet weekday)", area:"Jamsil", note:"Tuesday is far calmer than the weekend. The 'After-4' pass is cheaper for a shorter afternoon.", cost:3, done:false},
+   {id:uid(), time:"18:30", title:"KBO baseball at Jamsil Stadium", area:"Jamsil", note:"5-minute walk from Lotte World. Confirm a Jamsil team is home that series (mykbostats / Naver Sports) and grab tickets (~8-20k won).", cost:1, done:false},
+   {id:uid(), time:"after", title:"Songpa Chimaek Street", area:"Jamsil", note:"10-min walk from the stadium, chicken + beer with the post-game crowd. Or Migang Sikdang for a local grill.", cost:1, done:false}
+ ]},
+ {id:uid(), d:"24", m:"Jun", w:"Wed", theme:"Birthday · just the two of you", items:[
+   {id:uid(), time:"AM", title:"Skincare for both (English-speaking clinic)", area:"Myeongdong", note:"Aqua peel each. Lijin (couple-friendly) or Val:U, ~10 min from the hotel. Book ahead, ask about a glass-skin add-on.", cost:2, done:false},
+   {id:uid(), time:"lunch", title:"Slow birthday lunch", area:"Myeongdong", note:"Somewhere she loves, not rushed. NOTE: she is allergic to mango, watch desserts and drinks.", cost:2, done:false},
+   {id:uid(), time:"PM", title:"Bike + picnic at Banpo Hangang Park", area:"Banpo", note:"Ttareungi public bikes. Grab picnic + chimaek from a CU on the way.", cost:1, done:false},
+   {id:uid(), time:"20:00", title:"Moonlight Rainbow Fountain", area:"Banpo", note:"Free shows 19:30 / 20:00 / 20:30 / 21:00. South bank = best view. The birthday capstone.", cost:0, done:false},
+   {id:uid(), time:"night", title:"Birthday dinner: Madame Mimi (Seorae)", area:"Banpo", note:"French bistro in the French Village, a sweet nod to home. Open Wed till 11pm, reserve. Grand alternative: Le Da, Han River fine dining.", cost:3, done:false}
+ ]},
+ {id:uid(), d:"25", m:"Jun", w:"Thu", theme:"Fashion crawl", items:[
+   {id:uid(), time:"AM", title:"OSOI archive sale + Marge Sherwood", area:"Seongsu", note:"Both in Seongsu. Bag-brand archive sales = her thing.", cost:2, done:false},
+   {id:uid(), time:"", title:"Yeonmujang-gil pop-up crawl", area:"Seongsu", note:"Pop-up ground zero. Watch for the cheap 10,000-won 'scoop' events and the foreigner standby list.", cost:1, done:false},
+   {id:uid(), time:"", title:"Concept stores: LCDC, Daelim Changgo", area:"Seongsu", note:"Converted-warehouse shops + cafes. Tteokbokki / street food for fuel.", cost:1, done:false},
+   {id:uid(), time:"eve", title:"Dinner in Seongsu or Euljiro", area:"Seongsu", note:"Local Korean: Neungdong Minari (gomtang) or Malbang Gukbap in Seongsu, or eat in Euljiro on the way home.", cost:2, done:false}
+ ]},
+ {id:uid(), d:"26", m:"Jun", w:"Fri", theme:"Northwest by day, party by night", items:[
+   {id:uid(), time:"AM", title:"Eunpyeong Hanok Village (optional)", area:"Eunpyeong", note:"Far north, beautiful hanok rooftops with mountain backdrop. Skip for a slower start if you'd rather.", cost:0, done:false},
+   {id:uid(), time:"PM", title:"Mangwon Market + Yeonnam-dong", area:"Mapo", note:"Local market street food, then Yeonnam cafes and indie shops. All in Mapo, by the party.", cost:1, done:false},
+   {id:uid(), time:"", title:"Walk along the Hangang", area:"Hangang", note:"Mangwon Hangang Park is right there. Wind down before the night kicks off.", cost:0, done:false},
+   {id:uid(), time:"dinner", title:"Pre-party dinner in Yeonnam", area:"Yeonnam", note:"GIT TTEUL (KBBQ), Hangong-Gan (fusion gem) or oyoyoy (oysters + wine). All near the venue.", cost:2, done:false},
+   {id:uid(), time:"21:00", title:"Birthday Party 🎉", area:"Mapo", note:"Venue: Daejung-ro 80-15, 2F, Mapo-gu. The main event. Confirm headcount and a rain backup.", cost:3, done:false}
+ ]},
+ {id:uid(), d:"27", m:"Jun", w:"Sat", theme:"Recover slow in old Seoul", items:[
+   {id:uid(), time:"late AM", title:"Hangover meal at grandma's, Noksapyeong", area:"Noksapyeong", note:"Best cure going. No rush after the party.", cost:0, done:false},
+   {id:uid(), time:"PM", title:"Seongbuk-dong: temple, tea, galleries", area:"Seongbuk", note:"Gilsangsa temple is calm and free. Suyeon Sanbang for tea in a hanok garden. Gentle last full day.", cost:1, done:false},
+   {id:uid(), time:"sunset", title:"Naksan Park wall + photo booth", area:"Naksan", note:"Fortress-wall walk at golden hour, then a photo booth nearby. Ihwa Mural Village sits right below.", cost:1, done:false}
+ ]},
+ {id:uid(), d:"28", m:"Jun", w:"Sun", theme:"You fly out", items:[
+   {id:uid(), time:"", title:"Last breakfast + pack", area:"Dongdaemun", note:"Leave buffer for AREX / airport transfer.", cost:1, done:false}
+ ]}
+ ],
+ ideas:[
+   {id:uid(), title:"Gwangjang Market food hall", area:"Dongdaemun", note:"Walking distance. The vintage clothing row upstairs is great too.", cost:1},
+   {id:uid(), title:"DDP at night", area:"Dongdaemun", note:"Zaha Hadid's silver spaceship lit up. Architecture walk, no ticket needed.", cost:0},
+   {id:uid(), title:"Euljiro 'Hipjiro' bars", area:"Euljiro", note:"Printing-district alleys turned hidden bars. Very local after dark.", cost:2},
+   {id:uid(), title:"Sindang-dong tteokbokki town", area:"Dongdaemun", note:"Old-school spicy rice cake alley, a short ride away.", cost:1},
+   {id:uid(), title:"Mullae-dong ironworks + art", area:"Mullae", note:"Welding shops next to galleries and cafes. Gritty and real.", cost:1},
+   {id:uid(), title:"Ikseon-dong hanok alleys", area:"Ikseon", note:"Tight lanes of cafes and tiny shops near Jongno.", cost:1},
+   {id:uid(), title:"Seochon (West Village)", area:"Seochon", note:"Quiet old-Seoul streets, indie cafes, beside Gyeongbokgung.", cost:1},
+   {id:uid(), title:"The Hyundai Seoul", area:"Yeouido", note:"Korea's flashiest mall. Pairs with a Hangang afternoon.", cost:2},
+   {id:uid(), title:"Common Ground container mall", area:"Konkuk", note:"Stacked blue containers, indie fashion.", cost:2},
+   {id:uid(), title:"Aqua peel facial (English-speaking)", area:"Myeongdong", note:"Lijin / Val:U / PPEUM. Transparent pricing, English staff. Ask about first-visit deals.", cost:2},
+   {id:uid(), title:"Dragon Hill Spa (jjimjilbang)", area:"Yongsan", note:"Big spa, ~15k won entry, hours of soaking. Budget self-care for two.", cost:1},
+   {id:uid(), title:"Gyeongdong Market", area:"Jegidong", note:"Old herbal-medicine market with a cult Starbucks in a former theatre.", cost:1},
+   {id:uid(), title:"Meerkat / animal cafe, Hongdae", area:"Hongdae", note:"Her idea. Hongdae in Seoul, not Haeundae (that's Busan).", cost:2}
+ ]
+};}
+
+const $ = s=>document.querySelector(s);
+let state = defaults();
+
+/* ============================================================
+   SHARED SYNC  (jsonbin.io). Both of you edit one plan via the link.
+   To use a different bin, paste a new Bin ID + Access Key below.
+   Leave blank to fall back to device-only saving.
+   ============================================================ */
+const BIN_ID     = "6a1ab01921f9ee59d29d3760";
+const ACCESS_KEY = "$2a$10$qCFZy.D/3OQHAHZ.bAU3COFkogfQjGNVrA65BgoOjnoLJolzyF3VS";
+
+const CLOUD   = Boolean(BIN_ID && ACCESS_KEY);
+const API     = "https://api.jsonbin.io/v3/b/" + BIN_ID;
+const STORE_KEY = "seoul_itinerary_v2";
+let saveTimer;
+
+function markSaved(tag){ const el=$("#saved"); if(!el) return; el.innerHTML = tag ? "<b>"+tag+"</b>" : "Saved <b>\u2713</b>"; }
+function cacheLocal(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+function hasPlan(o){ return o && Array.isArray(o.days) && o.days.length>0; }
+function readCache(){ try{ const v=localStorage.getItem(STORE_KEY); if(v){ const p=JSON.parse(v); if(hasPlan(p)) return p; } }catch(e){} return null; }
+function ensureIdeas(o){ if(o && !Array.isArray(o.ideas)) o.ideas = defaults().ideas; return o; }
+function isEditing(){ return !!document.querySelector(".form"); }
+
+function save(){
+  cacheLocal();
+  if(!CLOUD){ markSaved("Saved on this device"); return; }
+  markSaved("Saving\u2026");
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{
+      const res=await fetch(API,{ method:"PUT",
+        headers:{ "Content-Type":"application/json", "X-Access-Key":ACCESS_KEY },
+        body: JSON.stringify(state) });
+      markSaved(res.ok ? "Synced \u2713" : "Sync error \u00b7 saved locally");
+    }catch(e){ markSaved("Offline \u00b7 saved locally"); }
+  },700);
+}
+
+async function fetchCloud(){
+  const res=await fetch(API+"/latest",{ headers:{ "X-Access-Key":ACCESS_KEY } });
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const json=await res.json();
+  const rec=json.record!==undefined ? json.record : json;
+  if(rec && Array.isArray(rec.days)){ ensureIdeas(rec); return rec; }
+  return null;
+}
+
+async function load(){
+  const cached=readCache(); if(cached) state=cached;
+  ensureIdeas(state);
+  if(CLOUD){
+    try{
+      const cloud=await fetchCloud();
+      if(hasPlan(cloud)){ state=cloud; cacheLocal(); markSaved("Synced \u2713"); save(); }
+      else { if(!hasPlan(state)) state=defaults(); ensureIdeas(state);
+        await fetch(API,{ method:"PUT", headers:{ "Content-Type":"application/json", "X-Access-Key":ACCESS_KEY }, body:JSON.stringify(state) });
+        cacheLocal(); markSaved("Synced \u2713"); }
+    }catch(e){ markSaved("Offline \u00b7 using local copy"); }
+  } else if(cached){ markSaved("Saved on this device"); }
+  render();
+}
+
+async function pull(){
+  if(!CLOUD || isEditing()) return;
+  try{
+    const cloud=await fetchCloud();
+    if(hasPlan(cloud) && JSON.stringify(cloud)!==JSON.stringify(state)){ state=cloud; cacheLocal(); render(); markSaved("Synced \u2713"); }
+  }catch(e){}
+}
+window.addEventListener("focus", pull);
+setInterval(pull, 15000);
+
+function tag(loc){ if(!loc) return ""; return '<span class="tag" style="background:'+colorFor(loc)+'">'+esc(loc)+'</span>'; }
+function costPill(c){ return (c===undefined||c===null||c==="") ? "" : '<span class="cost">'+COST[c]+'</span>'; }
+function esc(s){ return (s==null?"":(""+s)).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+function render(){
+  $("#legend").innerHTML = '<span>cost: free · ₩ · ₩₩ · ₩₩₩ · tap a location or time to edit it</span>';
+
+  $("#sgrid").innerHTML =
+    '<button class="addbtn" data-act="ideaAdd">+ Add an idea</button>' +
+    state.ideas.map((it,idx)=>(
+      '<div class="scard" data-idx="'+idx+'">'+
+        '<div class="h"><span class="t">'+esc(it.title)+'</span>'+tag(it.area)+costPill(it.cost)+
+          '<span style="margin-left:auto;display:flex;gap:2px">'+
+            '<button class="mini" data-act="ideaEdit" data-idx="'+idx+'">✎</button>'+
+            '<button class="mini" data-act="ideaDel" data-idx="'+idx+'">✕</button>'+
+          '</span>'+
+        '</div>'+
+        (it.note?'<div class="n">'+esc(it.note)+'</div>':'')+
+        '<div class="adder">'+state.days.map((d,di)=>'<button class="daypick" data-act="ideaToDay" data-idx="'+idx+'" data-di="'+di+'">+ '+d.d+'/6</button>').join("")+'</div>'+
+      '</div>'
+    )).join("");
+
+  $("#days").innerHTML = state.days.map((day,di)=>{
+    const items = day.items.map((it,ii)=>(
+      '<li class="item '+(it.done?'done':'')+'" data-di="'+di+'" data-ii="'+ii+'">'+
+        '<div class="check '+(it.done?'on':'')+'" data-act="toggle"></div>'+
+        '<div class="ibody">'+
+          '<div class="irow">'+
+            (it.time?'<span class="time">'+esc(it.time)+'</span>':'')+
+            '<span class="ititle">'+esc(it.title)+'</span>'+
+            tag(it.area)+costPill(it.cost)+
+          '</div>'+
+          (it.note?'<div class="inote">'+esc(it.note)+'</div>':'')+
+        '</div>'+
+        '<div class="iacts">'+
+          '<button class="mini" data-act="up" title="Move up">↑</button>'+
+          '<button class="mini" data-act="edit" title="Edit">✎</button>'+
+          '<button class="mini" data-act="del" title="Remove">✕</button>'+
+        '</div>'+
+      '</li>'
+    )).join("");
+    return '<section class="day" data-di="'+di+'">'+
+      '<div class="dhead">'+
+        '<div class="stamp"><div class="d">'+esc(day.d)+'</div><div class="m">'+esc(day.m)+'</div><div class="w">'+esc(day.w)+'</div></div>'+
+        '<div class="dtitle">'+
+          '<div class="theme" contenteditable="true" data-act="theme" spellcheck="false">'+esc(day.theme)+'</div>'+
+          '<div class="loc">'+day.items.length+' thing'+(day.items.length===1?'':'s')+' planned</div>'+
+        '</div>'+
+      '</div>'+
+      '<ul class="items">'+(items||'<li class="item" style="color:var(--muted)">Nothing here yet.</li>')+'</ul>'+
+      '<div class="addrow"><button class="addbtn" data-act="addopen" data-di="'+di+'">+ Add an activity</button></div>'+
+    '</section>';
+  }).join("");
+}
+
+document.addEventListener("click",e=>{
+  // ideas drawer
+  const toDay=e.target.closest('[data-act="ideaToDay"]');
+  if(toDay){ const idx=+toDay.dataset.idx, di=+toDay.dataset.di, s=state.ideas[idx];
+    state.days[di].items.push({id:uid(), time:"", title:s.title, area:s.area, note:s.note, cost:s.cost, done:false});
+    save(); render(); const t=document.querySelector('.day[data-di="'+di+'"]'); if(t) t.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+  const iEdit=e.target.closest('[data-act="ideaEdit"]'); if(iEdit){ openIdeaEdit(+iEdit.dataset.idx, iEdit.closest(".scard")); return; }
+  const iDel=e.target.closest('[data-act="ideaDel"]'); if(iDel){ state.ideas.splice(+iDel.dataset.idx,1); save(); render(); return; }
+  const iAdd=e.target.closest('[data-act="ideaAdd"]'); if(iAdd){ openIdeaAdd(iAdd); return; }
+
+  // day items
+  const item=e.target.closest("li.item[data-ii]");
+  if(item){
+    const di=+item.dataset.di, ii=+item.dataset.ii, act=(e.target.dataset.act)||"";
+    if(act==="toggle"){ state.days[di].items[ii].done=!state.days[di].items[ii].done; save(); render(); return; }
+    if(act==="del"){ state.days[di].items.splice(ii,1); save(); render(); return; }
+    if(act==="up"){ if(ii>0){ const a=state.days[di].items; [a[ii-1],a[ii]]=[a[ii],a[ii-1]]; save(); render(); } return; }
+    if(act==="edit"){ openEdit(di,ii,item); return; }
+  }
+  const addBtn=e.target.closest('[data-act="addopen"]');
+  if(addBtn){ openAdd(+addBtn.dataset.di, addBtn); return; }
+});
+
+document.addEventListener("blur",e=>{
+  const th=e.target.closest('[data-act="theme"]');
+  if(th){ const di=+th.closest(".day").dataset.di; state.days[di].theme=th.textContent.trim()||"Untitled"; save(); }
+},true);
+
+function formHTML(v, withTime){
+  v=v||{};
+  const costs=Object.entries(COST).map(([k,l])=>'<option value="'+k+'" '+((''+v.cost)===k?'selected':'')+'>'+l+'</option>').join("");
+  return '<div class="form">'+
+    '<input data-f="title" placeholder="What is it?" value="'+esc(v.title||'')+'">'+
+    '<div class="two">'+
+      (withTime?'<input data-f="time" class="f-time" placeholder="time, e.g. 7:30pm or AM" value="'+esc(v.time||'')+'">':'')+
+      '<input data-f="area" class="f-area" placeholder="location, e.g. Seongsu" value="'+esc(v.area||'')+'">'+
+      '<select data-f="cost" class="f-cost"><option value="">cost</option>'+costs+'</select>'+
+    '</div>'+
+    '<textarea data-f="note" placeholder="note (optional)">'+esc(v.note||'')+'</textarea>'+
+    '<div class="acts"><button class="btn ghost" data-f="cancel">Cancel</button><button class="btn" data-f="save">Save</button></div>'+
+  '</div>';
+}
+function readForm(box){
+  const g=f=>{ const el=box.querySelector('[data-f="'+f+'"]'); return el?el.value.trim():""; };
+  const cv=box.querySelector('[data-f="cost"]').value;
+  return {title:g("title"), time:g("time"), area:g("area"), note:g("note"), cost:cv===""?null:+cv};
+}
+function mountForm(target, v, withTime, onSave){
+  const box=document.createElement("div"); box.innerHTML=formHTML(v, withTime); const f=box.firstElementChild;
+  target.replaceWith(f); f.querySelector('[data-f="title"]').focus();
+  f.querySelector('[data-f="save"]').onclick=()=>{ const val=readForm(f); if(!val.title) return; onSave(val); save(); render(); };
+  f.querySelector('[data-f="cancel"]').onclick=()=>render();
+}
+function openAdd(di, btn){ mountForm(btn, {}, true, v=>{ v.id=uid(); v.done=false; state.days[di].items.push(v); }); }
+function openEdit(di,ii,li){ mountForm(li, state.days[di].items[ii], true, v=>{ Object.assign(state.days[di].items[ii], v); }); }
+function openIdeaAdd(btn){ mountForm(btn, {}, false, v=>{ v.id=uid(); state.ideas.unshift(v); }); }
+function openIdeaEdit(idx, card){ mountForm(card, state.ideas[idx], false, v=>{ Object.assign(state.ideas[idx], v); }); }
+
+$("#reset").onclick=()=>{ if(confirm("Reset everything back to the suggested plan? This replaces the shared plan for BOTH of you.")){ state=defaults(); save(); render(); } };
+let allOpen=false;
+$("#expandAll").onclick=()=>{ allOpen=!allOpen; $("#suggestBox").open=allOpen; $("#expandAll").textContent=allOpen?"Close ideas":"Open ideas"; };
+
+load();
+</script>
